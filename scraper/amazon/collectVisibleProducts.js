@@ -33,6 +33,25 @@ async function collectVisibleProducts(page, selectors) {
             return null;
           }
 
+          function getTitleFromCard(root, titleSelectors) {
+            // Tenta texto primeiro
+            const text = textBySelectors(root, titleSelectors);
+            if (text) return text;
+            // Fallback: atributo alt da imagem do link do produto
+            try {
+              const img = root.querySelector('a[data-testid="product-card-link"] img[alt]');
+              const alt = img?.getAttribute('alt')?.trim();
+              if (alt && alt.length > 3) return alt;
+            } catch (_) {}
+            // Fallback: aria-label do link
+            try {
+              const link = root.querySelector('a[data-testid="product-card-link"]');
+              const aria = link?.getAttribute('aria-label')?.trim();
+              if (aria && aria.length > 3) return aria;
+            } catch (_) {}
+            return null;
+          }
+
           function buildPriceFromParts(root, wholeSelectors, fractionSelectors) {
             const whole = textBySelectors(root, wholeSelectors);
             if (!whole) return null;
@@ -47,7 +66,7 @@ async function collectVisibleProducts(page, selectors) {
           return nodes
             .map((node) => {
               const asin = node.getAttribute('data-asin') || null;
-              const title = textBySelectors(node, sel.title);
+              const title = getTitleFromCard(node, sel.title);
               const href = attrBySelectors(node, sel.link, 'href');
 
               if (!title && !href) return null;
