@@ -85,7 +85,6 @@ async function scrapeAmazonOffers(input) {
     } catch (_) {
       warnings.push('Timeout em networkidle no carregamento inicial — continuando.');
     }
-
     const currentUrl = page.url();
     if (currentUrl.includes('/ap/signin') || currentUrl.includes('/signin')) {
       warnings.push(`Redirecionado para login: ${currentUrl}`);
@@ -140,3 +139,56 @@ async function scrapeAmazonOffers(input) {
       }
 
       previousUniqueCount = uniqueProducts.length;
+
+      if (shouldStop({ noGrowthCycles: metrics.noGrowthCycles, maxNoGrowthCycles, clicked, growth, atBottom, grew })) {
+        logger.info('Condição de parada atingida', { cycle, atBottom, grew, noGrowthCycles: metrics.noGrowthCycles });
+        break;
+      }
+    }
+
+    const allUnique = dedupeProducts(allProducts);
+    const validProducts = allUnique.filter(validateProduct);
+    const invalidProducts = allUnique.filter((p) => !validateProduct(p));
+
+    metrics.validCollected = validProducts.length;
+    metrics.invalidCount = invalidProducts.length;
+
+    if (invalidProducts.length > 0) {
+      warnings.push(
+        `${invalidProducts.length} produto(s) descartado(s) por dados incompletos (sem título, preço ou link válido).`
+      );
+      logger.warn('Produtos inválidos descartados', {
+        count: invalidProducts.length,
+        sample: invalidProducts.slice(0, 3).map((p) => ({
+          ASIN: p.ASIN,
+          PRODUTO: p.PRODUTO?.slice(0, 60),
+          PRECO_POR: p.PRECO_POR,
+          LINK_ORIGINAL: p.LINK_ORIGINAL?.slice(0, 80)
+        }))
+      });
+    }
+
+    return buildResult({ ok: true, targetUrl, query, warnings, metrics, startedAt, products: validProducts });
+  } finally {
+    await browser.close();
+  }
+}
+
+function buildResult({ ok, targetUrl, query, warnings, metrics, startedAt, products }) {
+  return {
+    ok,
+    source: targetUrl,
+    query: query || null,
+    warnings,
+    metrics: { ...metrics, elapsedMs: Date.now() - startedAt },
+    products
+  };
+}
+
+function randomBetween(min, max) {
+  const a = Number(min || 0);
+  const b = Number(max || 0);
+  return Math.floor(Math.random() * (b - a + 1)) + a;
+}
+
+module.exports = { scrapeAmazonOffers };
