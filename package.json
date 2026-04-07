@@ -1,0 +1,16 @@
+{
+  "name": "amazon-scraper-dynamic",
+  "version": "2.0.0",
+  "description": "Serviço de scraping dinâmico da Amazon para n8n",
+  "main": "server.js",
+  "type": "commonjs",
+  "scripts": {
+    "start": "node server.js",
+    "dev": "node server.js",
+    "postinstall": "playwright install chromium"
+  },
+  "dependencies": {
+    "express": "^4.21.2",
+    "playwright": "^1.53.1"
+  }
+}
