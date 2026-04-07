@@ -1,5 +1,6 @@
 const express = require('express');
 const amazonRouter = require('./routes/amazon');
+const diagnosticRouter = require('./routes/diagnostic');
 const { logger } = require('./utils/logger');
 
 const app = express();
@@ -10,6 +11,7 @@ app.get('/health', (_req, res) => {
 });
 
 app.use('/amazon', amazonRouter);
+app.use('/diagnostic', diagnosticRouter);
 
 app.use((err, _req, res, _next) => {
   logger.error('Unhandled error', { message: err.message, stack: err.stack });
